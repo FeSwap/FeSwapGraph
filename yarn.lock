@@ -25,10 +25,10 @@
   dependencies:
     regenerator-runtime "^0.13.2"
 
-"@graphprotocol/graph-cli@^0.22.0":
-  version "0.22.4"
-  resolved "https://registry.yarnpkg.com/@graphprotocol/graph-cli/-/graph-cli-0.22.4.tgz#dc7aec114a49fe2579e0098a465bbabe88298aed"
-  integrity sha512-+2OcByjz0k9F2guz6hQ6lRiWBrRj/Pc5ShIZjK69P1w3eICQtFn/F1j5zTbeWkr/tL//e2byf0MIxxMBo2xToQ==
+"@graphprotocol/graph-cli@^0.24.0":
+  version "0.24.1"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/graph-cli/-/graph-cli-0.24.1.tgz#711641669321afffee10ff01231876b4be87ef51"
+  integrity sha512-SwAvaB3A+UhiuX7Tosc5XCr24rujCFrO8tW+DAg0W6Fjbyef2Yl1qt8UxPlhobU/oQW0U4k1CY7pjIf9OLDpdQ==
   dependencies:
     assemblyscript "0.19.10"
     binary-install-raw "0.0.13"
@@ -54,10 +54,10 @@
     which "2.0.2"
     yaml "^1.5.1"
 
-"@graphprotocol/graph-ts@^0.22.0":
-  version "0.22.1"
-  resolved "https://registry.yarnpkg.com/@graphprotocol/graph-ts/-/graph-ts-0.22.1.tgz#3189b2495b33497280f617316cce68074d48e236"
-  integrity sha512-T5xrHN0tHJwd7ZnSTLhk5hAL3rCIp6rJ40kBCrETnv1mfK9hVyoojJK6VtBQXTbLsYtKe4SYjjD0cdOsAR9QiA==
+"@graphprotocol/graph-ts@^0.24.0":
+  version "0.24.1"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/graph-ts/-/graph-ts-0.24.1.tgz#50961b52b5383f9c5cf5e6e23fa039f24e729ddf"
+  integrity sha512-2vU4m5ZPQIqMlMce/z5vmOtGHRlRmcRhMfemS3NIwxCSxSBGVnX2zb7QBTzzdQKGwsAZdbz6V0okkOtvohELfQ==
   dependencies:
     assemblyscript "0.19.10"
 
