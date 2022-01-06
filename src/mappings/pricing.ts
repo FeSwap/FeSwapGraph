@@ -95,11 +95,11 @@ export function findEthPerToken(token: Token): BigDecimal {
   let whitelist = token.whitelist
   for (let i = 0; i < whitelist.length; i++) {
       let pairAddress = whitelist[i]
-      let pairAAB = Pair.load(pairAddress)
-      let pairABB = Pair.load(pairAAB.sibling)
+      let pairAAB = Pair.load(pairAddress)!
+      let pairABB = Pair.load(pairAAB.sibling)!
       if(pairAAB.reserveETH.plus(pairABB.reserveETH).gt(MINIMUM_LIQUIDITY_THRESHOLD_ETH))
       {        
-        let token1 = Token.load(pairAAB.token1)
+        let token1 = Token.load(pairAAB.token1)!
         return pairAAB.reserve1.plus(pairABB.reserve0).div(pairAAB.reserve0.plus(pairABB.reserve1))
                       .times(token1.derivedETH as BigDecimal) // return token1 per our token * Eth per token 1
       }

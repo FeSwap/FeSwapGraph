@@ -1,10 +1,10 @@
 /* eslint-disable prefer-const */
-import { BigDecimal, BigInt, EthereumEvent } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Bundle, Pair, PairDayData, Token, TokenDayData, FeSwapDayData, FeSwapFactory } from '../types/schema'
 import { PairHourData } from './../types/schema'
 import { ONE_BI, ZERO_BD, ZERO_BI } from './helpers'
 
-export function updateFeSwapDayData(feswapFactory: FeSwapFactory, event: EthereumEvent): FeSwapDayData {
+export function updateFeSwapDayData(feswapFactory: FeSwapFactory, event: ethereum.Event): FeSwapDayData {
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
   let dayStartTimestamp = dayID * 86400
@@ -25,7 +25,7 @@ export function updateFeSwapDayData(feswapFactory: FeSwapFactory, event: Ethereu
   return feswapDayData as FeSwapDayData
 }
 
-export function updatePairDayData(pair: Pair, event: EthereumEvent): PairDayData {
+export function updatePairDayData(pair: Pair, event: ethereum.Event): PairDayData {
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
   let dayStartTimestamp = dayID * 86400
@@ -55,7 +55,7 @@ export function updatePairDayData(pair: Pair, event: EthereumEvent): PairDayData
   return pairDayData as PairDayData
 }
 
-export function updatePairHourData(pair: Pair, event: EthereumEvent): PairHourData {
+export function updatePairHourData(pair: Pair, event: ethereum.Event): PairHourData {
   let timestamp = event.block.timestamp.toI32()
   let hourIndex = timestamp / 3600 // get unique hour within unix history
   let hourStartUnix = hourIndex * 3600 // want the rounded effect
@@ -83,7 +83,7 @@ export function updatePairHourData(pair: Pair, event: EthereumEvent): PairHourDa
   return pairHourData as PairHourData
 }
 
-export function updateTokenDayData(token: Token, event: EthereumEvent, bundle: Bundle): TokenDayData {
+export function updateTokenDayData(token: Token, event: ethereum.Event, bundle: Bundle): TokenDayData {
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
   let dayStartTimestamp = dayID * 86400
