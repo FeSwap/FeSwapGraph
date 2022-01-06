@@ -1,6 +1,6 @@
 specVersion: 0.0.2
-description: Uniswap is a decentralized protocol for automated token exchange on Ethereum.
-repository: https://github.com/Uniswap/uniswap-v2-subgraph
+description: FeSwap is an AMM DEX protocol with no commission fee.
+repository: https://github.com/FeSwap/FeSwapGraph
 schema:
   file: ./schema.graphql
 dataSources:
@@ -10,7 +10,7 @@ dataSources:
     source:
       address: '0x91289e8150E20Ff7CA8478dAd6DCC55D5c85Ac2D'
       abi: FeSwapFactory
-      startBlock: 22215070
+      startBlock: 22215071  
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -55,7 +55,7 @@ templates:
           handler: handleMint
         - event: Burn(indexed address,uint256,uint256,indexed address)
           handler: handleBurn
-        - event: Swap(indexed address,uint256,uint256,uint256,uint256,indexed address)
+        - event: Swap(indexed address,uint256,uint256,uint256,indexed address)
           handler: handleSwap
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer

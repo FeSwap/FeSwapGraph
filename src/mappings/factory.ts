@@ -12,6 +12,7 @@ import {
   ZERO_BD,
   ZERO_BI,
 } from './helpers'
+import { isOnWhitelist, WETH_ADDRESS } from './pricing'
 
 export function handleNewPair(event: PairCreated): void {
   // load factory (create if first exchange)
@@ -20,11 +21,12 @@ export function handleNewPair(event: PairCreated): void {
     factory = new FeSwapFactory(FACTORY_ADDRESS)
     factory.pairCount = 0
     factory.totalVolumeETH = ZERO_BD
-    factory.totalLiquidityETH = ZERO_BD
     factory.totalVolumeUSD = ZERO_BD
     factory.untrackedVolumeUSD = ZERO_BD
+    factory.totalLiquidityETH = ZERO_BD
     factory.totalLiquidityUSD = ZERO_BD
     factory.txCount = ZERO_BI
+    factory.save()
 
     // create new bundle
     let bundle = new Bundle('1')
@@ -32,7 +34,6 @@ export function handleNewPair(event: PairCreated): void {
     bundle.save()
   }
   factory.pairCount = factory.pairCount + 1
-  factory.save()
 
   // create the tokens
   let token0 = Token.load(event.params.tokenA.toHexString())
@@ -48,7 +49,7 @@ export function handleNewPair(event: PairCreated): void {
 
     // bail if we couldn't figure out the decimals
     if (decimals === null) {
-      log.debug('mybug the decimal on token 0 was null', [])
+      log.debug('Decimal on token 0 was null', [event.params.tokenA.toHexString()])
       return
     }
 
@@ -58,7 +59,7 @@ export function handleNewPair(event: PairCreated): void {
     token0.tradeVolumeUSD = ZERO_BD
     token0.untrackedVolumeUSD = ZERO_BD
     token0.totalLiquidity = ZERO_BD
-    // token0.allPairs = []
+    token0.whitelist = []
     token0.txCount = ZERO_BI
   }
 
@@ -72,6 +73,7 @@ export function handleNewPair(event: PairCreated): void {
 
     // bail if we couldn't figure out the decimals
     if (decimals === null) {
+      log.debug('Decimal on token 1 was null', [event.params.tokenB.toHexString()])
       return
     }
     token1.decimals = decimals
@@ -80,36 +82,81 @@ export function handleNewPair(event: PairCreated): void {
     token1.tradeVolumeUSD = ZERO_BD
     token1.untrackedVolumeUSD = ZERO_BD
     token1.totalLiquidity = ZERO_BD
-    // token1.allPairs = []
+    token1.whitelist = []
     token1.txCount = ZERO_BI
   }
 
-  let pair = new Pair(event.params.pairAAB.toHexString()) as Pair
-  pair.token0 = token0.id
-  pair.token1 = token1.id
-  pair.liquidityProviderCount = ZERO_BI
-  pair.createdAtTimestamp = event.block.timestamp
-  pair.createdAtBlockNumber = event.block.number
-  pair.txCount = ZERO_BI
-  pair.reserve0 = ZERO_BD
-  pair.reserve1 = ZERO_BD
-  pair.trackedReserveETH = ZERO_BD
-  pair.reserveETH = ZERO_BD
-  pair.reserveUSD = ZERO_BD
-  pair.totalSupply = ZERO_BD
-  pair.volumeToken0 = ZERO_BD
-  pair.volumeToken1 = ZERO_BD
-  pair.volumeUSD = ZERO_BD
-  pair.untrackedVolumeUSD = ZERO_BD
-  pair.token0Price = ZERO_BD
-  pair.token1Price = ZERO_BD
+  if (isOnWhitelist(token1.id)) {
+    let whitelist0 = token0.whitelist
+    whitelist0.push(event.params.pairAAB.toHexString())
+    token0.whitelist = whitelist0
+  }
+
+  if (isOnWhitelist(token0.id)) {
+    let whitelist1 = token1.whitelist
+    whitelist1.push(event.params.pairABB.toHexString())
+    token1.whitelist = whitelist1
+  }
+
+  let pairAAB = new Pair(event.params.pairAAB.toHexString()) as Pair
+  pairAAB.sibling = event.params.pairABB.toHexString()
+  pairAAB.token0 = token0.id
+  pairAAB.token1 = token1.id
+  pairAAB.reserve0 = ZERO_BD
+  pairAAB.reserve1 = ZERO_BD
+  pairAAB.totalSupply = ZERO_BD
+
+  pairAAB.reserveETH = ZERO_BD
+  pairAAB.reserveUSD = ZERO_BD
+  pairAAB.trackedReserveETH = ZERO_BD
+
+  pairAAB.token0Price = ZERO_BD
+  pairAAB.token1Price = ZERO_BD
+
+  pairAAB.volumeToken0 = ZERO_BD
+  pairAAB.volumeToken1 = ZERO_BD
+  pairAAB.volumeUSD = ZERO_BD
+  pairAAB.untrackedVolumeUSD = ZERO_BD
+  pairAAB.txCount = ZERO_BI
+
+  pairAAB.liquidityProviderCount = ZERO_BI
+  pairAAB.createdAtTimestamp = event.block.timestamp
+  pairAAB.createdAtBlockNumber = event.block.number
+
+  let pairABB = new Pair(event.params.pairABB.toHexString()) as Pair
+  pairABB.sibling = event.params.pairAAB.toHexString()
+  // swap the order here
+  pairABB.token0 = token1.id
+  pairABB.token1 = token0.id
+  pairABB.reserve0 = ZERO_BD
+  pairABB.reserve1 = ZERO_BD
+  pairABB.totalSupply = ZERO_BD
+
+  pairABB.reserveETH = ZERO_BD
+  pairABB.reserveUSD = ZERO_BD
+  pairABB.trackedReserveETH = ZERO_BD
+
+  pairABB.token0Price = ZERO_BD
+  pairABB.token1Price = ZERO_BD
+
+  pairABB.volumeToken0 = ZERO_BD
+  pairABB.volumeToken1 = ZERO_BD
+  pairABB.volumeUSD = ZERO_BD
+  pairABB.untrackedVolumeUSD = ZERO_BD
+  pairABB.txCount = ZERO_BI
+
+  pairABB.liquidityProviderCount = ZERO_BI
+  pairABB.createdAtTimestamp = event.block.timestamp
+  pairABB.createdAtBlockNumber = event.block.number
 
   // create the tracked contract based on the template
   PairTemplate.create(event.params.pairAAB)
+  PairTemplate.create(event.params.pairABB)
 
   // save updated values
   token0.save()
   token1.save()
-  pair.save()
+  pairAAB.save()
+  pairABB.save()
   factory.save()
 }

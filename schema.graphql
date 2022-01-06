@@ -6,15 +6,15 @@ type FeSwapFactory @entity {
   pairCount: Int!
 
   # total volume
-  totalVolumeUSD: BigDecimal!
   totalVolumeETH: BigDecimal!
+  totalVolumeUSD: BigDecimal!
 
   # untracked values - less confident USD scores
   untrackedVolumeUSD: BigDecimal!
 
   # total liquidity
-  totalLiquidityUSD: BigDecimal!
   totalLiquidityETH: BigDecimal!
+  totalLiquidityUSD: BigDecimal!
 
   # transactions
   txCount: BigInt!
@@ -32,19 +32,22 @@ type Token @entity {
   # used for other stats like marketcap
   totalSupply: BigInt!
 
+  # derived prices
+  derivedETH: BigDecimal
+
   # token specific volume
   tradeVolume: BigDecimal!
   tradeVolumeUSD: BigDecimal!
   untrackedVolumeUSD: BigDecimal!
 
-  # transactions across all pairs
-  txCount: BigInt!
-
   # liquidity across all pairs
   totalLiquidity: BigDecimal!
 
-  # derived prices
-  derivedETH: BigDecimal
+  # transactions across all pairs
+  txCount: BigInt!
+
+  # for tracking volume
+  whitelist: [String]!
 
   # derived fields
   tokenDayData: [TokenDayData!]! @derivedFrom(field: "token")
@@ -59,7 +62,7 @@ type Pair @entity {
   id: ID!
 
   # Sibling pair
-  sibling: Pair!
+  sibling:  Pair!
 
   # mirrored from the smart contract
   token0: Token!
@@ -85,12 +88,13 @@ type Pair @entity {
   untrackedVolumeUSD: BigDecimal!
   txCount: BigInt!
 
+  # Fields used to help derived relationship
+  liquidityProviderCount: BigInt! # used to detect new exchanges
+  
   # creation stats
   createdAtTimestamp: BigInt!
   createdAtBlockNumber: BigInt!
-
-  # Fields used to help derived relationship
-  liquidityProviderCount: BigInt! # used to detect new exchanges
+  
   # derived fields
   pairHourData: [PairHourData!]! @derivedFrom(field: "pair")
   liquidityPositions: [LiquidityPosition!]! @derivedFrom(field: "pair")
@@ -204,7 +208,7 @@ type Swap @entity {
   from: Bytes! # the EOA that initiated the txn
   amount0In: BigDecimal!
   amount1In: BigDecimal!
-  amount0Out: BigDecimal!
+#  amount0Out: BigDecimal!
   amount1Out: BigDecimal!
   to: Bytes!
   logIndex: BigInt
@@ -220,7 +224,7 @@ type Bundle @entity {
 }
 
 # Data accumulated and condensed into day stats for all of Uniswap
-type UniswapDayData @entity {
+type FeSwapDayData @entity {
   id: ID! # timestamp rounded to current day by dividing by 86400
   date: Int!
 
@@ -229,33 +233,12 @@ type UniswapDayData @entity {
   dailyVolumeUntracked: BigDecimal!
 
   totalVolumeETH: BigDecimal!
-  totalLiquidityETH: BigDecimal!
   totalVolumeUSD: BigDecimal! # Accumulate at each trade, not just calculated off whatever totalVolume is. making it more accurate as it is a live conversion
+
+  totalLiquidityETH: BigDecimal!
   totalLiquidityUSD: BigDecimal!
 
   txCount: BigInt!
-}
-
-type PairHourData @entity {
-  id: ID!
-  hourStartUnix: Int! # unix timestamp for start of hour
-  pair: Pair!
-
-  # reserves
-  reserve0: BigDecimal!
-  reserve1: BigDecimal!
-
-  # total supply for LP historical returns
-  totalSupply: BigDecimal!
-
-  # derived liquidity
-  reserveUSD: BigDecimal!
-
-  # volume stats
-  hourlyVolumeToken0: BigDecimal!
-  hourlyVolumeToken1: BigDecimal!
-  hourlyVolumeUSD: BigDecimal!
-  hourlyTxns: BigInt!
 }
 
 # Data accumulated and condensed into day stats for each exchange
@@ -283,10 +266,32 @@ type PairDayData @entity {
   dailyTxns: BigInt!
 }
 
+type PairHourData @entity {
+  id: ID!
+  hourStartUnix: Int! # unix timestamp for start of hour
+  pair: Pair!
+
+  # reserves
+  reserve0: BigDecimal!
+  reserve1: BigDecimal!
+
+  # total supply for LP historical returns
+  totalSupply: BigDecimal!
+
+  # derived liquidity
+  reserveUSD: BigDecimal!
+
+  # volume stats
+  hourlyVolumeToken0: BigDecimal!
+  hourlyVolumeToken1: BigDecimal!
+  hourlyVolumeUSD: BigDecimal!
+  hourlyTxns: BigInt!
+}
+
 type TokenDayData @entity {
   id: ID!
-  date: Int!
   token: Token!
+  date: Int!
 
   # volume stats
   dailyVolumeToken: BigDecimal!
