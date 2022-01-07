@@ -35,7 +35,6 @@ export function handleTransfer(event: Transfer): void {
     return
   }
 
-//  let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
   let transactionHash = event.transaction.hash.toHexString()
 
   // user stats
@@ -89,7 +88,6 @@ export function handleTransfer(event: Transfer): void {
 
       // save entities
       transaction.save()
- //   feswapFactory.save()
     }
   }
 
@@ -143,8 +141,6 @@ export function handleTransfer(event: Transfer): void {
         burn.pair = pair.id
         burn.liquidity = value
         burn.needsComplete = false
-        //  burn.transaction = transaction.id
-
       }
     } else {
       burn = new BurnEvent(
@@ -158,7 +154,6 @@ export function handleTransfer(event: Transfer): void {
       burn.pair = pair.id
       burn.liquidity = value
       burn.needsComplete = false
-      //    burn.transaction = transaction.id
     }
 
     // if this logical burn included a fee mint, account for this
@@ -244,7 +239,9 @@ export function handleSync(event: Sync): void {
   // get tracked liquidity - will be 0 if neither is in whitelist
   let trackedLiquidityETH: BigDecimal
   if (bundle.ethPrice.notEqual(ZERO_BD)) {
-    trackedLiquidityETH = getTrackedLiquidityUSD(pair.reserve0, token0 as Token, pair.reserve1, token1 as Token, bundle as Bundle)
+    trackedLiquidityETH = getTrackedLiquidityUSD(pair.reserve0, token0 as Token, pair.reserve1, token1 as Token, bundle as Bundle).div(
+      bundle.ethPrice
+    )
   } else {
     trackedLiquidityETH = ZERO_BD
   }
