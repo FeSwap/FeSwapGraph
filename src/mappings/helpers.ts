@@ -8,6 +8,7 @@ import { FeSwapFactory as FactoryContract } from '../types/templates/Pair/FeSwap
 //import { TokenDefinition } from './tokenDefinition'
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+export const ADDRESS_MAX  = '0xffffffffffffffffffffffffffffffffffffffff'
 export const FACTORY_ADDRESS = '0x91289e8150E20Ff7CA8478dAd6DCC55D5c85Ac2D'
 export const INIT_CODE_HASH = '0x1b68a89c18551451d63580e66fda7aee3ccf09c7317f32b6747ff18b1173ad09'
 

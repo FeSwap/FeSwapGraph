@@ -396,22 +396,22 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_pairOwner",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "",
+        "name": "router",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "rateTrigger",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "switchOracle",
         "type": "uint256"
       }
     ],

@@ -1,10 +1,11 @@
 /* eslint-disable prefer-const */
-import { log } from '@graphprotocol/graph-ts'
-import { PairCreated } from '../types/FeSwapFactory/FeSwapFactory'
+import { Address, log } from '@graphprotocol/graph-ts'
+import { PairCreated, SetFeeToCall } from '../types/FeSwapFactory/FeSwapFactory'
 import { Bundle, Pair, Token, FeSwapFactory } from '../types/schema'
 import { Pair as PairTemplate } from '../types/templates'
 import {
   FACTORY_ADDRESS,
+  ADDRESS_ZERO,
   fetchTokenDecimals,
   fetchTokenName,
   fetchTokenSymbol,
@@ -13,6 +14,12 @@ import {
   ZERO_BI,
 } from './helpers'
 import { isOnWhitelist, WETH_ADDRESS } from './pricing'
+
+export function handleSetFeeTo(call: SetFeeToCall): void {
+  let factory = FeSwapFactory.load(FACTORY_ADDRESS)!
+  factory.feeTo = call.inputs._feeTo
+  factory.save()
+}  
 
 export function handleNewPair(event: PairCreated): void {
   // load factory (create if first exchange)
@@ -25,6 +32,7 @@ export function handleNewPair(event: PairCreated): void {
     factory.untrackedVolumeUSD = ZERO_BD
     factory.totalLiquidityETH = ZERO_BD
     factory.totalLiquidityUSD = ZERO_BD
+    factory.feeTo = Address.fromString(ADDRESS_ZERO)
     factory.txCount = ZERO_BI
     factory.save()
 
@@ -99,6 +107,10 @@ export function handleNewPair(event: PairCreated): void {
   }
 
   let pairAAB = new Pair(event.params.pairAAB.toHexString()) as Pair
+  pairAAB.pairOwner = Address.fromString(ADDRESS_ZERO)
+  pairAAB.profitPairOwner = ZERO_BD
+  pairAAB.profitProtocol = ZERO_BD
+  pairAAB.rateTrigger = 10100
   pairAAB.sibling = event.params.pairABB.toHexString()
   pairAAB.token0 = token0.id
   pairAAB.token1 = token1.id
@@ -124,6 +136,10 @@ export function handleNewPair(event: PairCreated): void {
   pairAAB.createdAtBlockNumber = event.block.number
 
   let pairABB = new Pair(event.params.pairABB.toHexString()) as Pair
+  pairABB.pairOwner = Address.fromString(ADDRESS_ZERO)
+  pairABB.profitPairOwner = ZERO_BD
+  pairABB.profitProtocol = ZERO_BD
+  pairABB.rateTrigger = 10100
   pairABB.sibling = event.params.pairAAB.toHexString()
   // swap the order here
   pairABB.token0 = token1.id

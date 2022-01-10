@@ -10,15 +10,17 @@ import {
   Swap as SwapEvent,
   Bundle
 } from '../types/schema'
-import { Pair as PairContract, Mint, Burn, Swap, Transfer, Sync } from '../types/templates/Pair/Pair'
+import { Pair as PairContract, Mint, Burn, Swap, Transfer, Sync, InitializeCall } from '../types/templates/Pair/Pair'
 import { updatePairDayData, updateTokenDayData, updateFeSwapDayData, updatePairHourData } from './dayUpdates'
 import { getEthPriceInUSD, findEthPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD, USDC_WETH_PAIR, WETH_USDC_PAIR } from './pricing'
 import {
   convertTokenToDecimal,
   ADDRESS_ZERO,
+  ADDRESS_MAX,
   FACTORY_ADDRESS,
   ONE_BI,
-  createUser,
+  ZERO_BI,
+//createUser,
   createLiquidityPosition,
   ZERO_BD,
   BI_18,
@@ -29,12 +31,24 @@ function isCompleteMint(mintId: string): boolean {
   return MintEvent.load(mintId)!.sender !== null // sufficient checks
 }
 
+export function handleInitialize(call: InitializeCall): void {
+  let pair = Pair.load(call.to.toHexString())!
+  if (call.inputs._pairOwner.toHexString() !== ADDRESS_MAX) {
+    pair.pairOwner = call.inputs._pairOwner
+  }
+  if (call.inputs.rateTrigger !== ZERO_BI) {
+    pair.rateTrigger = call.inputs.rateTrigger.toI32()
+  }
+  pair.save()
+}  
+
 export function handleTransfer(event: Transfer): void {
   // ignore initial transfers for first adds
   if (event.params.to.toHexString() == ADDRESS_ZERO && event.params.value.equals(BigInt.fromI32(1000))) {
     return
   }
 
+  let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
   let transactionHash = event.transaction.hash.toHexString()
 
   // user stats
@@ -66,11 +80,11 @@ export function handleTransfer(event: Transfer): void {
   if (from.toHexString() == ADDRESS_ZERO) {
     // update total supply
     pair.totalSupply = pair.totalSupply.plus(value)
-    pair.save()
 
+    let mint: MintEvent
     // create new mint if no mints so far or if last one is done already
     if (mints.length === 0 || isCompleteMint(mints[mints.length - 1])) {
-      let mint = new MintEvent(
+      mint = new MintEvent(
         event.transaction.hash
           .toHexString()
           .concat('-')
@@ -79,16 +93,27 @@ export function handleTransfer(event: Transfer): void {
       mint.transaction = transaction.id
       mint.timestamp = transaction.timestamp
       mint.pair = pair.id
-      mint.to = to
-      mint.liquidity = value
       mint.save()
 
       // update mints in transaction
-      transaction.mints = mints.concat([mint.id])
-
-      // save entities
+      mints.push(mint.id)
+      transaction.mints = mints
       transaction.save()
+    } else {
+      // use the already created mint
+      mint = MintEvent.load(mints[mints.length - 1])!
     }
+
+    if (to === changetype<Address>(feswapFactory.feeTo)) {
+      pair.profitProtocol = pair.profitProtocol.plus(value)
+    } else if (to === changetype<Address>(pair.pairOwner)) {
+      pair.profitPairOwner = pair.profitPairOwner.plus(value)
+    }
+
+    mint.to = to
+    mint.liquidity = value
+    mint.save()
+    pair.save()
   }
 
   // case where direct send first on ETH withdrawls
@@ -129,20 +154,10 @@ export function handleTransfer(event: Transfer): void {
       let currentBurn = BurnEvent.load(burns[burns.length - 1])!
       if (currentBurn.needsComplete) {
         burn = currentBurn as BurnEvent
-      } else {
-        burn = new BurnEvent(
-          event.transaction.hash
-            .toHexString()
-            .concat('-')
-            .concat(BigInt.fromI32(burns.length).toString())
-        )
-        burn.transaction = transaction.id
-        burn.timestamp = transaction.timestamp
-        burn.pair = pair.id
-        burn.liquidity = value
-        burn.needsComplete = false
+        assert(burn.liquidity == value, "Not all liquidity burned");
       }
-    } else {
+    }
+    if (burn === null) {
       burn = new BurnEvent(
         event.transaction.hash
           .toHexString()
@@ -154,37 +169,25 @@ export function handleTransfer(event: Transfer): void {
       burn.pair = pair.id
       burn.liquidity = value
       burn.needsComplete = false
-    }
+    }  
 
     // if this logical burn included a fee mint, account for this
     if (mints.length !== 0 && !isCompleteMint(mints[mints.length - 1])) {
-      let mint = MintEvent.load(mints[mints.length - 1])!
-      burn.feeTo = mint.to
-      burn.feeLiquidity = mint.liquidity
       // remove the logical mint
       store.remove('Mint', mints[mints.length - 1])
-      // update the transaction
 
-      // TODO: Consider using .slice().pop() to protect against unintended
-      // side effects for other code paths.
       mints.pop()
       transaction.mints = mints
-      transaction.save()
     }
-    burn.save()
+
     // if accessing last one, replace it
     if (burn.needsComplete) {
-      // TODO: Consider using .slice(0, -1).concat() to protect against
-      // unintended side effects for other code paths.
-      burns[burns.length - 1] = burn.id
-    }
-    // else add new one
-    else {
-      // TODO: Consider using .concat() for handling array updates to protect
-      // against unintended side effects for other code paths.
+      burn.needsComplete = false
+    } else {
       burns.push(burn.id)
+      transaction.burns = burns
     }
-    transaction.burns = burns
+    burn.save()
     transaction.save()
   }
 
@@ -206,7 +209,7 @@ export function handleTransfer(event: Transfer): void {
 }
 
 export function handleSync(event: Sync): void {
-  let pair = Pair.load(event.address.toHex())!
+  let pair = Pair.load(event.address.toHexString())!
   let token0 = Token.load(pair.token0)!
   let token1 = Token.load(pair.token1)!
   let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
@@ -273,8 +276,13 @@ export function handleMint(event: Mint): void {
   let mints = transaction.mints!
   let mint = MintEvent.load(mints[mints.length - 1])!
 
-  let pair = Pair.load(event.address.toHex())!
+  let pair = Pair.load(event.address.toHexString())!
   let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
+
+  // Pair owner is adding the liquidity, liquidity is mishandled as the Pairowner profit, do correction here.
+  if (mint.to === changetype<Address>(pair.pairOwner)) {
+    pair.profitPairOwner = pair.profitPairOwner.minus(mint.liquidity)
+  }
 
   let token0 = Token.load(pair.token0)!
   let token1 = Token.load(pair.token1)!
@@ -340,7 +348,7 @@ export function handleBurn(event: Burn): void {
   let burns = transaction.burns!
   let burn = BurnEvent.load(burns[burns.length - 1])!
 
-  let pair = Pair.load(event.address.toHex())!
+  let pair = Pair.load(event.address.toHexString())!
   let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
 
   //update token info
@@ -430,12 +438,12 @@ export function handleSwap(event: Swap): void {
   }
 
   // update token0 global volume and token liquidity stats
-  token0.tradeVolume = token0.tradeVolume.plus(amount0In)
+  token0.tradeVolume = token0.tradeVolume.plus(amount0Total)
   token0.tradeVolumeUSD = token0.tradeVolumeUSD.plus(trackedAmountUSD)
   token0.untrackedVolumeUSD = token0.untrackedVolumeUSD.plus(derivedAmountUSD)
 
   // update token1 global volume and token liquidity stats
-  token1.tradeVolume = token1.tradeVolume.plus(amount1In.plus(amount1Out))
+  token1.tradeVolume = token1.tradeVolume.plus(amount1Total)
   token1.tradeVolumeUSD = token1.tradeVolumeUSD.plus(trackedAmountUSD)
   token1.untrackedVolumeUSD = token1.untrackedVolumeUSD.plus(derivedAmountUSD)
 
@@ -472,6 +480,7 @@ export function handleSwap(event: Swap): void {
     transaction.swaps = []
     transaction.burns = []
   }
+
   let swaps = transaction.swaps!
   let swap = new SwapEvent(
     event.transaction.hash
@@ -492,7 +501,7 @@ export function handleSwap(event: Swap): void {
   swap.to = event.params.to
   swap.logIndex = event.logIndex
   // use the tracked amount if we have it
-  swap.amountUSD = trackedAmountUSD === ZERO_BD ? derivedAmountUSD : trackedAmountUSD
+  swap.amountUSD = (trackedAmountUSD === ZERO_BD) ? derivedAmountUSD : trackedAmountUSD
   swap.save()
 
   // update the transaction

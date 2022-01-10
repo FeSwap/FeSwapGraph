@@ -2,6 +2,9 @@ type FeSwapFactory @entity {
   # factory address
   id: ID!
 
+  # Protocol profit receiver
+  feeTo: Bytes!
+
   # pair info
   pairCount: Int!
 
@@ -60,6 +63,14 @@ type Token @entity {
 type Pair @entity {
   # pair address
   id: ID!
+
+  # Pair profit receiver as the NFT owner
+  pairOwner: Bytes!
+  profitPairOwner: BigDecimal!
+  profitProtocol: BigDecimal!
+
+  # Internal exchange trigger rate
+  rateTrigger: Int!
 
   # Sibling pair
   sibling:  Pair!
@@ -163,10 +174,6 @@ type Mint @entity {
   logIndex: BigInt
   # derived amount based on available prices of tokens
   amountUSD: BigDecimal
-
-  # optional fee fields, if a Transfer event is fired in _mintFee
-  feeTo: Bytes
-  feeLiquidity: BigDecimal
 }
 
 type Burn @entity {
@@ -190,10 +197,6 @@ type Burn @entity {
 
   # mark uncomplete in ETH case
   needsComplete: Boolean!
-
-  # optional fee fields, if a Transfer event is fired in _mintFee
-  feeTo: Bytes
-  feeLiquidity: BigDecimal
 }
 
 type Swap @entity {

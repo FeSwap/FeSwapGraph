@@ -69,7 +69,8 @@ let WHITELIST: string[] = [
   '0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6', // WBTC
   '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
   '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // USDT
-  '0xd6df932a45c0f255f85145f286ea0b292b21c90b', //AAVE
+  '0xd6df932a45c0f255f85145f286ea0b292b21c90b', // AAVE
+  '0x831753dd7087cac61ab5644b308642cc1c33dc13', // QUICK
   '0x0be3afd0a28f0aa787d113c08d1d8a903cf6eee9', // FESW@M
 ]
 
