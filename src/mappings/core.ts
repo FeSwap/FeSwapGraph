@@ -31,6 +31,7 @@ function isCompleteMint(mintId: string): boolean {
   return MintEvent.load(mintId)!.sender !== null // sufficient checks
 }
 
+/*
 export function handleInitialize(call: InitializeCall): void {
   let pair = Pair.load(call.to.toHexString())!
   if (call.inputs._pairOwner.toHexString() !== ADDRESS_MAX) {
@@ -40,7 +41,8 @@ export function handleInitialize(call: InitializeCall): void {
     pair.rateTrigger = call.inputs.rateTrigger.toI32()
   }
   pair.save()
-}  
+} 
+*/ 
 
 export function handleTransfer(event: Transfer): void {
   // ignore initial transfers for first adds
@@ -104,11 +106,11 @@ export function handleTransfer(event: Transfer): void {
       mint = MintEvent.load(mints[mints.length - 1])!
     }
 
-    if (to === changetype<Address>(feswapFactory.feeTo)) {
-      pair.profitProtocol = pair.profitProtocol.plus(value)
-    } else if (to === changetype<Address>(pair.pairOwner)) {
-      pair.profitPairOwner = pair.profitPairOwner.plus(value)
-    }
+//    if (to === changetype<Address>(feswapFactory.feeTo)) {
+//      pair.profitProtocol = pair.profitProtocol.plus(value)
+//    } else if (to === changetype<Address>(pair.pairOwner)) {
+//      pair.profitPairOwner = pair.profitPairOwner.plus(value)
+//    }
 
     mint.to = to
     mint.liquidity = value
@@ -280,9 +282,9 @@ export function handleMint(event: Mint): void {
   let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
 
   // Pair owner is adding the liquidity, liquidity is mishandled as the Pairowner profit, do correction here.
-  if (mint.to === changetype<Address>(pair.pairOwner)) {
-    pair.profitPairOwner = pair.profitPairOwner.minus(mint.liquidity)
-  }
+//  if (mint.to === changetype<Address>(pair.pairOwner)) {
+//    pair.profitPairOwner = pair.profitPairOwner.minus(mint.liquidity)
+//  }
 
   let token0 = Token.load(pair.token0)!
   let token1 = Token.load(pair.token1)!

@@ -13,7 +13,7 @@ dataSources:
       startBlock: 22215071  
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/mappings/factory.ts
       entities:
@@ -31,9 +31,6 @@ dataSources:
       eventHandlers:
         - event: PairCreated(indexed address,indexed address,address,address,uint256)
           handler: handleNewPair
-      callHandlers:
-        - function: setFeeTo(address)
-          handler: handleSetFeeTo
 templates:
   - kind: ethereum/contract
     name: Pair
@@ -42,7 +39,7 @@ templates:
       abi: Pair
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/mappings/core.ts
       entities:
@@ -64,9 +61,5 @@ templates:
           handler: handleTransfer
         - event: Sync(uint112,uint112)
           handler: handleSync
-      callHandlers:
-        - function: initialize(address,address,uint256,uint256) 
-          handler: handleInitialize
-
 
 

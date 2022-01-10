@@ -65,12 +65,12 @@ type Pair @entity {
   id: ID!
 
   # Pair profit receiver as the NFT owner
-  pairOwner: Bytes!
-  profitPairOwner: BigDecimal!
-  profitProtocol: BigDecimal!
+#  pairOwner: Bytes!
+#  profitPairOwner: BigDecimal!
+#  profitProtocol: BigDecimal!
 
   # Internal exchange trigger rate
-  rateTrigger: Int!
+#  rateTrigger: Int!
 
   # Sibling pair
   sibling:  Pair!

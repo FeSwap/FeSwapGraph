@@ -6,6 +6,7 @@ import { Pair as PairTemplate } from '../types/templates'
 import {
   FACTORY_ADDRESS,
   ADDRESS_ZERO,
+  fetchFactoryFeeTo,
   fetchTokenDecimals,
   fetchTokenName,
   fetchTokenSymbol,
@@ -15,33 +16,36 @@ import {
 } from './helpers'
 import { isOnWhitelist, WETH_ADDRESS } from './pricing'
 
+/*
 export function handleSetFeeTo(call: SetFeeToCall): void {
   let factory = FeSwapFactory.load(FACTORY_ADDRESS)!
   factory.feeTo = call.inputs._feeTo
   factory.save()
-}  
+} 
+*/ 
 
 export function handleNewPair(event: PairCreated): void {
   // load factory (create if first exchange)
-  let factory = FeSwapFactory.load(FACTORY_ADDRESS)
-  if (factory === null) {
-    factory = new FeSwapFactory(FACTORY_ADDRESS)
-    factory.pairCount = 0
-    factory.totalVolumeETH = ZERO_BD
-    factory.totalVolumeUSD = ZERO_BD
-    factory.untrackedVolumeUSD = ZERO_BD
-    factory.totalLiquidityETH = ZERO_BD
-    factory.totalLiquidityUSD = ZERO_BD
-    factory.feeTo = Address.fromString(ADDRESS_ZERO)
-    factory.txCount = ZERO_BI
-    factory.save()
+  let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)
+  if (feswapFactory === null) {
+    feswapFactory = new FeSwapFactory(FACTORY_ADDRESS)
+    feswapFactory.pairCount = 0
+    feswapFactory.totalVolumeETH = ZERO_BD
+    feswapFactory.totalVolumeUSD = ZERO_BD
+    feswapFactory.untrackedVolumeUSD = ZERO_BD
+    feswapFactory.totalLiquidityETH = ZERO_BD
+    feswapFactory.totalLiquidityUSD = ZERO_BD
+    feswapFactory.feeTo = Address.fromString(ADDRESS_ZERO)
+    feswapFactory.txCount = ZERO_BI
+    feswapFactory.save()
 
     // create new bundle
     let bundle = new Bundle('1')
     bundle.ethPrice = ZERO_BD
     bundle.save()
   }
-  factory.pairCount = factory.pairCount + 1
+  feswapFactory.pairCount = feswapFactory.pairCount + 1
+  feswapFactory.feeTo = fetchFactoryFeeTo()
 
   // create the tokens
   let token0 = Token.load(event.params.tokenA.toHexString())
@@ -107,10 +111,10 @@ export function handleNewPair(event: PairCreated): void {
   }
 
   let pairAAB = new Pair(event.params.pairAAB.toHexString()) as Pair
-  pairAAB.pairOwner = Address.fromString(ADDRESS_ZERO)
-  pairAAB.profitPairOwner = ZERO_BD
-  pairAAB.profitProtocol = ZERO_BD
-  pairAAB.rateTrigger = 10100
+//  pairAAB.pairOwner = Address.fromString(ADDRESS_ZERO)
+//  pairAAB.profitPairOwner = ZERO_BD
+//  pairAAB.profitProtocol = ZERO_BD
+//  pairAAB.rateTrigger = 10100
   pairAAB.sibling = event.params.pairABB.toHexString()
   pairAAB.token0 = token0.id
   pairAAB.token1 = token1.id
@@ -136,10 +140,10 @@ export function handleNewPair(event: PairCreated): void {
   pairAAB.createdAtBlockNumber = event.block.number
 
   let pairABB = new Pair(event.params.pairABB.toHexString()) as Pair
-  pairABB.pairOwner = Address.fromString(ADDRESS_ZERO)
-  pairABB.profitPairOwner = ZERO_BD
-  pairABB.profitProtocol = ZERO_BD
-  pairABB.rateTrigger = 10100
+//  pairABB.pairOwner = Address.fromString(ADDRESS_ZERO)
+//  pairABB.profitPairOwner = ZERO_BD
+//  pairABB.profitProtocol = ZERO_BD
+//  pairABB.rateTrigger = 10100
   pairABB.sibling = event.params.pairAAB.toHexString()
   // swap the order here
   pairABB.token0 = token1.id
@@ -174,5 +178,5 @@ export function handleNewPair(event: PairCreated): void {
   token1.save()
   pairAAB.save()
   pairABB.save()
-  factory.save()
+  feswapFactory.save()
 }

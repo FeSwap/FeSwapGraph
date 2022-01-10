@@ -3,7 +3,7 @@ import { log, BigInt, BigDecimal, Address, ethereum } from '@graphprotocol/graph
 import { ERC20 } from '../types/FeSwapFactory/ERC20'
 import { ERC20SymbolBytes } from '../types/FeSwapFactory/ERC20SymbolBytes'
 import { ERC20NameBytes } from '../types/FeSwapFactory/ERC20NameBytes'
-import { User, Bundle, Token, LiquidityPosition, LiquidityPositionSnapshot, Pair } from '../types/schema'
+import { User, Bundle, Token, LiquidityPosition, LiquidityPositionSnapshot, Pair, FeSwapFactory } from '../types/schema'
 import { FeSwapFactory as FactoryContract } from '../types/templates/Pair/FeSwapFactory'
 //import { TokenDefinition } from './tokenDefinition'
 
@@ -54,6 +54,17 @@ export function equalToZero(value: BigDecimal): boolean {
 
 export function isNullEthValue(value: string): boolean {
   return value == '0x0000000000000000000000000000000000000000000000000000000000000001'
+}
+
+export function fetchFactoryFeeTo(): Address {
+  let contractFactory = FactoryContract.bind(Address.fromString(FACTORY_ADDRESS))
+
+  // try types string and bytes32 for symbol
+  let feeToResult = contractFactory.try_feeTo()
+  if (feeToResult.reverted) {
+    return Address.fromString(ADDRESS_ZERO)
+  }
+  return feeToResult.value
 }
 
 export function fetchTokenSymbol(tokenAddress: Address): string {
