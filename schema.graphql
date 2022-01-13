@@ -133,6 +133,7 @@ type InnerSwapInfo @entity {
 type User @entity {
   id: ID!
   liquidityPositions: [LiquidityPosition!] @derivedFrom(field: "user")
+  miningPositions: [MiningPosition!] @derivedFrom(field: "user")
   usdSwapped: BigDecimal!
 }
 
@@ -142,6 +143,31 @@ type LiquidityPosition @entity {
   pair: Pair!
   liquidityTokenBalance: BigDecimal!
 }
+
+type Pool @entity {
+  id: ID!
+  token0: String!
+  token1: String!
+}
+
+type MiningPool @entity {
+  id: ID!
+  pair0: Pool!
+  pair1: Pool!
+  rewardRate: BigDecimal!
+  totalStaked0: BigDecimal!
+  totalStaked1: BigDecimal!
+}
+
+type MiningPosition @entity {
+  id: ID!
+  balance0: BigDecimal!
+  balance1: BigDecimal!
+  claimedFESW: BigDecimal!
+  miningPool: MiningPool!
+  user: User!
+}
+
 
 # saved over time for return calculations, gets created and never updated
 type LiquidityPositionSnapshot @entity {

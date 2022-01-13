@@ -10,6 +10,7 @@ import { FeSwapFactory as FactoryContract } from '../types/templates/Pair/FeSwap
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 export const ADDRESS_MAX  = '0xffffffffffffffffffffffffffffffffffffffff'
 export const FACTORY_ADDRESS = '0x91289e8150E20Ff7CA8478dAd6DCC55D5c85Ac2D'
+export const STAKING_FACTORY_ADDRESS = '0xe499ee63f5ad4b70f7931ab81bc8d8a8f8f2f66e'
 export const INIT_CODE_HASH = '0x1b68a89c18551451d63580e66fda7aee3ccf09c7317f32b6747ff18b1173ad09'
 
 export let ZERO_BI = BigInt.fromI32(0)

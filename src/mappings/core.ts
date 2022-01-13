@@ -9,8 +9,10 @@ import {
   Burn as BurnEvent,
   Swap as SwapEvent,
   Bundle,
-  InnerSwapInfo
+  InnerSwapInfo,
+  MiningPool
 } from '../types/schema'
+
 import { Pair as PairContract, Mint, Burn, Swap, Transfer, Sync, InitializeCall } from '../types/templates/Pair/Pair'
 import { updatePairDayData, updateTokenDayData, updateFeSwapDayData } from './dayUpdates'
 import { getEthPriceInUSD, findEthPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD, USDC_WETH_PAIR, WETH_USDC_PAIR } from './pricing'
@@ -52,7 +54,7 @@ export function handleTransfer(event: Transfer): void {
     return
   }
 
-  let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
+// let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
   let transactionHash = event.transaction.hash.toHexString()
 
   // user stats
@@ -195,14 +197,18 @@ export function handleTransfer(event: Transfer): void {
     transaction.save()
   }
 
-  if (from.toHexString() != ADDRESS_ZERO && from.toHexString() != pair.id) {
+  // check if from is statking contract
+  let fromStakeContract = MiningPool.load(from.toHexString())
+  if ((fromStakeContract !== null) && (from.toHexString() != ADDRESS_ZERO) && (from.toHexString() != pair.id)) {
     let fromUserLiquidityPosition = createLiquidityPosition(event.address, from)
     fromUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(from), BI_18)
     fromUserLiquidityPosition.save()
     createLiquiditySnapshot(fromUserLiquidityPosition, event)
   }
 
-  if (event.params.to.toHexString() != ADDRESS_ZERO && to.toHexString() != pair.id) {
+  // check if to is statking contract
+  let toStakeContract = MiningPool.load(to.toHexString())
+  if ((toStakeContract !== null) && (to.toHexString() != ADDRESS_ZERO) && (to.toHexString() != pair.id)) {
     let toUserLiquidityPosition = createLiquidityPosition(event.address, to)
     toUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(to), BI_18)
     toUserLiquidityPosition.save()
