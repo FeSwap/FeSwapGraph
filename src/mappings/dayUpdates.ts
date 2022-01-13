@@ -1,7 +1,7 @@
 /* eslint-disable prefer-const */
-import { BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt, Bytes, ethereum } from '@graphprotocol/graph-ts'
 import { Bundle, Pair, PairDayData, Token, TokenDayData, FeSwapDayData, FeSwapFactory } from '../types/schema'
-import { PairHourData } from './../types/schema'
+// import { PairHourData } from './../types/schema'
 import { ONE_BI, ZERO_BD, ZERO_BI } from './helpers'
 
 export function updateFeSwapDayData(feswapFactory: FeSwapFactory, event: ethereum.Event): FeSwapDayData {
@@ -29,8 +29,7 @@ export function updatePairDayData(pair: Pair, event: ethereum.Event): PairDayDat
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
   let dayStartTimestamp = dayID * 86400
-  let dayPairID = event.address
-    .toHexString()
+  let dayPairID = pair.id
     .concat('-')
     .concat(BigInt.fromI32(dayID).toString())
   let pairDayData = PairDayData.load(dayPairID)
@@ -39,11 +38,12 @@ export function updatePairDayData(pair: Pair, event: ethereum.Event): PairDayDat
     pairDayData.date = dayStartTimestamp
     pairDayData.token0 = pair.token0
     pairDayData.token1 = pair.token1
-    pairDayData.pairAddress = event.address
+    pairDayData.pairAddress = changetype<Bytes>(Bytes.fromHexString(pair.id))
     pairDayData.dailyVolumeToken0 = ZERO_BD
     pairDayData.dailyVolumeToken1 = ZERO_BD
     pairDayData.dailyVolumeUSD = ZERO_BD
     pairDayData.dailyTxns = ZERO_BI
+    pairDayData.dailyKValueAddedPerLiquidity = ZERO_BD
   }
 
   pairDayData.totalSupply = pair.totalSupply
@@ -55,6 +55,7 @@ export function updatePairDayData(pair: Pair, event: ethereum.Event): PairDayDat
   return pairDayData as PairDayData
 }
 
+/*
 export function updatePairHourData(pair: Pair, event: ethereum.Event): PairHourData {
   let timestamp = event.block.timestamp.toI32()
   let hourIndex = timestamp / 3600 // get unique hour within unix history
@@ -82,6 +83,7 @@ export function updatePairHourData(pair: Pair, event: ethereum.Event): PairHourD
 
   return pairHourData as PairHourData
 }
+*/
 
 export function updateTokenDayData(token: Token, event: ethereum.Event, bundle: Bundle): TokenDayData {
   let timestamp = event.block.timestamp.toI32()

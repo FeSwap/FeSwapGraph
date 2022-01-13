@@ -8,19 +8,21 @@ import {
   Mint as MintEvent,
   Burn as BurnEvent,
   Swap as SwapEvent,
-  Bundle
+  Bundle,
+  InnerSwapInfo
 } from '../types/schema'
 import { Pair as PairContract, Mint, Burn, Swap, Transfer, Sync, InitializeCall } from '../types/templates/Pair/Pair'
-import { updatePairDayData, updateTokenDayData, updateFeSwapDayData, updatePairHourData } from './dayUpdates'
+import { updatePairDayData, updateTokenDayData, updateFeSwapDayData } from './dayUpdates'
 import { getEthPriceInUSD, findEthPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD, USDC_WETH_PAIR, WETH_USDC_PAIR } from './pricing'
 import {
   convertTokenToDecimal,
+  convertDecimalToBigInt,
   ADDRESS_ZERO,
   ADDRESS_MAX,
   FACTORY_ADDRESS,
   ONE_BI,
   ZERO_BI,
-//createUser,
+  createUser,
   createLiquidityPosition,
   ZERO_BD,
   BI_18,
@@ -55,9 +57,9 @@ export function handleTransfer(event: Transfer): void {
 
   // user stats
   let from = event.params.from
-//  createUser(from)
+  createUser(from)
   let to = event.params.to
-//  createUser(to)
+  createUser(to)
 
   // get pair and load contract
   let pair = Pair.load(event.address.toHexString())!
@@ -215,6 +217,63 @@ export function handleSync(event: Sync): void {
   let token0 = Token.load(pair.token0)!
   let token1 = Token.load(pair.token1)!
   let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
+  let transactionHash = event.transaction.hash.toHexString()
+  let innerSwapInfo = InnerSwapInfo.load('S')!
+
+  let amount0 = convertTokenToDecimal(event.params.reserve0, token0.decimals)
+  let amount1 = convertTokenToDecimal(event.params.reserve1, token1.decimals)
+
+  if ((transactionHash != innerSwapInfo.transaction) ||
+      (event.logIndex != innerSwapInfo.logIndex.plus(ONE_BI)) ||
+      (pair.sibling != innerSwapInfo.pair)) {
+    // Not the consecutive sync event, just save the sync info assuming it is the first one 
+    innerSwapInfo.transaction = transactionHash
+    innerSwapInfo.logIndex = event.logIndex
+    innerSwapInfo.pair = pair.id
+    innerSwapInfo.reserve0 = pair.reserve0
+    innerSwapInfo.reserve1 = pair.reserve1
+    innerSwapInfo.save()
+  } else {
+    // Update the arbtrage KValue increase per liquidity token
+    let pairSibing = Pair.load(innerSwapInfo.pair)!
+
+    // Note: Token0/Token1 decimals are swapped here
+    let PairSibingValuePost = convertDecimalToBigInt(pairSibing.reserve0, token1.decimals)    
+                                .times(convertDecimalToBigInt(pairSibing.reserve1, token0.decimals)).sqrt()
+
+    let PairSibingValuePrev = convertDecimalToBigInt(innerSwapInfo.reserve0, token1.decimals)
+                                .times(convertDecimalToBigInt(innerSwapInfo.reserve1, token0.decimals)).sqrt()
+
+    let PairSibingKValueAddedPerLiquidity = convertTokenToDecimal(PairSibingValuePost, BI_18)
+                                              .minus(convertTokenToDecimal(PairSibingValuePrev, BI_18))
+                                              .div(pairSibing.totalSupply)
+
+    pairSibing.KValueAddedPerLiquidity = pairSibing.KValueAddedPerLiquidity.plus(PairSibingKValueAddedPerLiquidity)
+    pairSibing.innerSwapCount = pairSibing.innerSwapCount.plus(ONE_BI)
+    pairSibing.save()
+
+    let pairSibingDayData   = updatePairDayData(pairSibing as Pair, event)
+    pairSibingDayData.dailyTxns = pairSibingDayData.dailyTxns.minus(ONE_BI) // inner swap is not considered as a transaction
+    pairSibingDayData.dailyKValueAddedPerLiquidity = pairSibingDayData.dailyKValueAddedPerLiquidity.plus(PairSibingKValueAddedPerLiquidity)
+    pairSibingDayData.save()
+
+    let PairValuePost =  event.params.reserve0.times(event.params.reserve1).sqrt()
+
+    let PairValuePrev = convertDecimalToBigInt(pair.reserve0, token0.decimals)
+                          .times(convertDecimalToBigInt(pair.reserve1, token1.decimals)).sqrt()
+
+    let PairKValueAddedPerLiquidity = convertTokenToDecimal(PairValuePost, BI_18)
+                                        .minus(convertTokenToDecimal(PairValuePrev, BI_18))
+                                        .div(pair.totalSupply)
+
+    pair.KValueAddedPerLiquidity = pair.KValueAddedPerLiquidity.plus(PairKValueAddedPerLiquidity)
+    pair.innerSwapCount = pair.innerSwapCount.plus(ONE_BI)
+    
+    let pairDayData   = updatePairDayData(pair as Pair, event)
+    pairDayData.dailyTxns = pairDayData.dailyTxns.minus(ONE_BI) // inner swap is not considered as a transaction
+    pairDayData.dailyKValueAddedPerLiquidity = pairDayData.dailyKValueAddedPerLiquidity.plus(PairKValueAddedPerLiquidity)
+    pairDayData.save()
+  }
 
   // reset factory liquidity by subtracting onluy tarcked liquidity
   feswapFactory.totalLiquidityETH = feswapFactory.totalLiquidityETH.minus(pair.trackedReserveETH as BigDecimal)
@@ -223,8 +282,8 @@ export function handleSync(event: Sync): void {
   token0.totalLiquidity = token0.totalLiquidity.minus(pair.reserve0)
   token1.totalLiquidity = token1.totalLiquidity.minus(pair.reserve1)
 
-  pair.reserve0 = convertTokenToDecimal(event.params.reserve0, token0.decimals)
-  pair.reserve1 = convertTokenToDecimal(event.params.reserve1, token1.decimals)
+  pair.reserve0 = amount0
+  pair.reserve1 = amount1
 
   if (pair.reserve1.notEqual(ZERO_BD)) pair.token0Price = pair.reserve0.div(pair.reserve1)
   else pair.token0Price = ZERO_BD
@@ -328,13 +387,13 @@ export function handleMint(event: Mint): void {
   // update day entities
   let feswapDayData = updateFeSwapDayData(feswapFactory as FeSwapFactory, event)
   let pairDayData   = updatePairDayData(pair as Pair, event)
-  let pairHourData  = updatePairHourData(pair as Pair, event)
+//  let pairHourData  = updatePairHourData(pair as Pair, event)
   let token0DayData = updateTokenDayData(token0 as Token, event,  bundle as Bundle)
   let token1DayData = updateTokenDayData(token1 as Token, event,  bundle as Bundle)
 
   feswapDayData.save()
   pairDayData.save()
-  pairHourData.save()
+//  pairHourData.save()
   token0DayData.save()
   token1DayData.save()
 }
@@ -396,13 +455,13 @@ export function handleBurn(event: Burn): void {
   // update day entities
   let feswapDayData = updateFeSwapDayData(feswapFactory as FeSwapFactory, event)
   let pairDayData   = updatePairDayData(pair as Pair, event)
-  let pairHourData  = updatePairHourData(pair as Pair, event)
+//  let pairHourData  = updatePairHourData(pair as Pair, event)
   let token0DayData = updateTokenDayData(token0 as Token, event, bundle as Bundle)
   let token1DayData = updateTokenDayData(token1 as Token, event, bundle as Bundle)
 
   feswapDayData.save()
   pairDayData.save()
-  pairHourData.save()
+//  pairHourData.save()
   token0DayData.save()
   token1DayData.save()
 }
@@ -459,6 +518,9 @@ export function handleSwap(event: Swap): void {
   pair.volumeToken1 = pair.volumeToken1.plus(amount1Total)
   pair.untrackedVolumeUSD = pair.untrackedVolumeUSD.plus(derivedAmountUSD)
   pair.txCount = pair.txCount.plus(ONE_BI)
+  if (pair.timestampFirstSwap == ZERO_BI) {
+    pair.timestampFirstSwap = event.block.timestamp
+  }
 
   // update global values, only used tracked amounts for volume
   let feswapFactory = FeSwapFactory.load(FACTORY_ADDRESS)!
@@ -517,7 +579,7 @@ export function handleSwap(event: Swap): void {
   // update day entities
   let feswapDayData = updateFeSwapDayData(feswapFactory as FeSwapFactory, event)
   let pairDayData   = updatePairDayData(pair as Pair, event)
-  let pairHourData  = updatePairHourData(pair as Pair, event)
+//  let pairHourData  = updatePairHourData(pair as Pair, event)
   let token0DayData = updateTokenDayData(token0 as Token, event, bundle as Bundle)
   let token1DayData = updateTokenDayData(token1 as Token, event, bundle as Bundle)
 
@@ -534,10 +596,10 @@ export function handleSwap(event: Swap): void {
   pairDayData.save()
 
   // update hourly pair data
-  pairHourData.hourlyVolumeToken0 = pairHourData.hourlyVolumeToken0.plus(amount0Total)
-  pairHourData.hourlyVolumeToken1 = pairHourData.hourlyVolumeToken1.plus(amount1Total)
-  pairHourData.hourlyVolumeUSD = pairHourData.hourlyVolumeUSD.plus(trackedAmountUSD)
-  pairHourData.save()
+//  pairHourData.hourlyVolumeToken0 = pairHourData.hourlyVolumeToken0.plus(amount0Total)
+//  pairHourData.hourlyVolumeToken1 = pairHourData.hourlyVolumeToken1.plus(amount1Total)
+//  pairHourData.hourlyVolumeUSD = pairHourData.hourlyVolumeUSD.plus(trackedAmountUSD)
+//  pairHourData.save()
 
   // swap specific updating for token0
   token0DayData.dailyVolumeToken = token0DayData.dailyVolumeToken.plus(amount0Total)

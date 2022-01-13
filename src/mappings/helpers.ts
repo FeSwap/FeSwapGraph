@@ -36,6 +36,10 @@ export function convertEthToDecimal(eth: BigInt): BigDecimal {
   return eth.toBigDecimal().div(exponentToBigDecimal(18))
 }
 
+export function convertDecimalToBigInt(amountInDecimal: BigDecimal, exchangeDecimals: BigInt): BigInt {
+  return BigInt.fromString(amountInDecimal.times(exponentToBigDecimal(exchangeDecimals)).toString())
+}
+
 export function convertTokenToDecimal(tokenAmount: BigInt, exchangeDecimals: BigInt): BigDecimal {
   if (exchangeDecimals == ZERO_BI) {
     return tokenAmount.toBigDecimal()

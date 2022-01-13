@@ -81,6 +81,10 @@ type Pair @entity {
   reserve0: BigDecimal!
   reserve1: BigDecimal!
   totalSupply: BigDecimal!
+#  kValueAdded: BigDecimal!
+  KValueAddedPerLiquidity: BigDecimal!
+  innerSwapCount: BigInt!
+  timestampFirstSwap: BigInt!
 
   # derived liquidity
   reserveETH: BigDecimal!
@@ -107,12 +111,23 @@ type Pair @entity {
   createdAtBlockNumber: BigInt!
   
   # derived fields
-  pairHourData: [PairHourData!]! @derivedFrom(field: "pair")
+#  pairHourData: [PairHourData!]! @derivedFrom(field: "pair")
   liquidityPositions: [LiquidityPosition!]! @derivedFrom(field: "pair")
   liquidityPositionSnapshots: [LiquidityPositionSnapshot!]! @derivedFrom(field: "pair")
   mints: [Mint!]! @derivedFrom(field: "pair")
   burns: [Burn!]! @derivedFrom(field: "pair")
   swaps: [Swap!]! @derivedFrom(field: "pair")
+}
+
+type InnerSwapInfo @entity {
+  id: ID!
+  transaction: Transaction!
+  logIndex: BigInt!
+  pair: Pair!   # reference to pair
+  
+  # saved reserves
+  reserve0: BigDecimal!
+  reserve1: BigDecimal!
 }
 
 type User @entity {
@@ -267,29 +282,32 @@ type PairDayData @entity {
   dailyVolumeToken1: BigDecimal!
   dailyVolumeUSD: BigDecimal!
   dailyTxns: BigInt!
+
+  # Inner swap Kvalue increase per liquidity share 
+  dailyKValueAddedPerLiquidity: BigDecimal!
 }
 
-type PairHourData @entity {
-  id: ID!
-  hourStartUnix: Int! # unix timestamp for start of hour
-  pair: Pair!
-
-  # reserves
-  reserve0: BigDecimal!
-  reserve1: BigDecimal!
-
-  # total supply for LP historical returns
-  totalSupply: BigDecimal!
-
-  # derived liquidity
-  reserveUSD: BigDecimal!
-
-  # volume stats
-  hourlyVolumeToken0: BigDecimal!
-  hourlyVolumeToken1: BigDecimal!
-  hourlyVolumeUSD: BigDecimal!
-  hourlyTxns: BigInt!
-}
+#type PairHourData @entity {
+#  id: ID!
+#  hourStartUnix: Int! # unix timestamp for start of hour
+#  pair: Pair!
+#
+#  # reserves
+#  reserve0: BigDecimal!
+#  reserve1: BigDecimal!
+#
+#  # total supply for LP historical returns
+#  totalSupply: BigDecimal!
+#
+#  # derived liquidity
+#  reserveUSD: BigDecimal!
+#
+#  # volume stats
+#  hourlyVolumeToken0: BigDecimal!
+#  hourlyVolumeToken1: BigDecimal!
+#  hourlyVolumeUSD: BigDecimal!
+#  hourlyTxns: BigInt!
+#}
 
 type TokenDayData @entity {
   id: ID!

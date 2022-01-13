@@ -1,7 +1,7 @@
 /* eslint-disable prefer-const */
 import { Address, log } from '@graphprotocol/graph-ts'
 import { PairCreated, SetFeeToCall } from '../types/FeSwapFactory/FeSwapFactory'
-import { Bundle, Pair, Token, FeSwapFactory } from '../types/schema'
+import { Bundle, Pair, Token, FeSwapFactory, InnerSwapInfo } from '../types/schema'
 import { Pair as PairTemplate } from '../types/templates'
 import {
   FACTORY_ADDRESS,
@@ -43,7 +43,17 @@ export function handleNewPair(event: PairCreated): void {
     let bundle = new Bundle('1')
     bundle.ethPrice = ZERO_BD
     bundle.save()
+
+    // Initialize innerSwapInfo
+    let innerSwapInfo = new InnerSwapInfo('S')
+    innerSwapInfo.transaction = ADDRESS_ZERO
+    innerSwapInfo.logIndex = ZERO_BI
+    innerSwapInfo.pair = ADDRESS_ZERO
+    innerSwapInfo.reserve0 = ZERO_BD
+    innerSwapInfo.reserve1 = ZERO_BD
+    innerSwapInfo.save()
   }
+
   feswapFactory.pairCount = feswapFactory.pairCount + 1
   feswapFactory.feeTo = fetchFactoryFeeTo()
 
@@ -121,6 +131,9 @@ export function handleNewPair(event: PairCreated): void {
   pairAAB.reserve0 = ZERO_BD
   pairAAB.reserve1 = ZERO_BD
   pairAAB.totalSupply = ZERO_BD
+  pairAAB.KValueAddedPerLiquidity = ZERO_BD
+  pairAAB.innerSwapCount = ZERO_BI
+  pairAAB.timestampFirstSwap = ZERO_BI
 
   pairAAB.reserveETH = ZERO_BD
   pairAAB.reserveUSD = ZERO_BD
@@ -151,6 +164,9 @@ export function handleNewPair(event: PairCreated): void {
   pairABB.reserve0 = ZERO_BD
   pairABB.reserve1 = ZERO_BD
   pairABB.totalSupply = ZERO_BD
+  pairABB.KValueAddedPerLiquidity = ZERO_BD
+  pairABB.innerSwapCount = ZERO_BI
+  pairABB.timestampFirstSwap = ZERO_BI
 
   pairABB.reserveETH = ZERO_BD
   pairABB.reserveUSD = ZERO_BD
