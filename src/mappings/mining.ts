@@ -1,4 +1,5 @@
 /* eslint-disable prefer-const */
+import { log, Address } from '@graphprotocol/graph-ts'
 import { Transfer } from '../types/Fesw/Fesw'
 import { MiningPool, Pool, MiningPosition } from '../types/schema'
 import { StakingTwinRewards as StakingTwinRewardsTemplate  } from '../types/templates'
@@ -14,21 +15,16 @@ import {
   convertTokenToDecimal,
 } from './helpers'
 
-export function handleFeswTransfer(event: Transfer): void {
-  // Check the staking reward notify events
-  if (event.params.from.toHexString() !== STAKING_FACTORY_ADDRESS) return
+export function newStakePool(to: Address): MiningPool {
+  let pool = to.toHexString()
+  let miningPool = new MiningPool(pool)
 
-  let pool = event.params.to.toHexString()
-  let miningPool = MiningPool.load(pool)
-  if(miningPool !== null) return
-  miningPool = new MiningPool(pool)
-
-  let stakingContract = StakingTwinRewards.bind(event.params.to)
+  let stakingContract = StakingTwinRewards.bind(to)
   let stakingTokenA = stakingContract.stakingTokenA()
   let stakingTokenB = stakingContract.stakingTokenB()
 
   // create the staking pool of 1st liquidity token 
-  let pairAAB =  new Pool(stakingTokenA.toHexString())
+  let pairAAB = new Pool(stakingTokenA.toHexString())
   let pairAABContract = PairContract.bind(stakingTokenA)
   pairAAB.token0 = fetchTokenSymbol(pairAABContract.tokenIn())
   pairAAB.token1 = fetchTokenSymbol(pairAABContract.tokenOut())
@@ -47,6 +43,16 @@ export function handleFeswTransfer(event: Transfer): void {
   miningPool.pair0 = pairAAB.id
   miningPool.pair1 = pairABB.id
   miningPool.save()
+  return miningPool as MiningPool
+}
+
+export function handleFeswTransfer(event: Transfer): void {
+  // Check the staking reward notify events
+  if (event.params.from.toHexString() != STAKING_FACTORY_ADDRESS) return
+
+  let miningPool = MiningPool.load(event.params.to.toHexString())
+  if(miningPool !== null) return
+  newStakePool(event.params.to)
 
   // create the staking contract based on the template
   StakingTwinRewardsTemplate.create(event.params.to)
@@ -62,7 +68,12 @@ export function handleRewardAdded(event: RewardAddedEvent): void {
 }
 
 export function handleStaked(event: StakedEvent): void {
-  let pool = MiningPool.load(event.address.toHexString())!
+  let pool = MiningPool.load(event.address.toHexString())
+
+  // for two pools staked before reward notified
+  if (pool === null) {
+    pool = newStakePool(event.address)
+  }
   let user = event.params.user.toHexString()
   let positionID = user.concat('-').concat(pool.id)
   let miningPosition = MiningPosition.load(positionID)
@@ -113,6 +124,6 @@ export function handleRewardPaid(event: RewardPaidEvent): void {
   let miningPosition = MiningPosition.load(positionID)!
 
   let reward = convertTokenToDecimal(event.params.reward, BI_18)
-  miningPosition.claimedFESW = miningPosition.claimedFESW.minus(reward)
+  miningPosition.claimedFESW = miningPosition.claimedFESW.plus(reward)
   miningPosition.save()
 }

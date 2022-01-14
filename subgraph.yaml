@@ -44,11 +44,18 @@ dataSources:
       language: wasm/assemblyscript
       file: ./src/mappings/mining.ts
       entities:
-        - Pair
-        - Token
+        - Pool
+        - MiningPool
+        - MiningPosition
       abis:
         - name: Fesw
           file: ./abis/Fesw.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Pair
+          file: ./abis/Pair.json
+        - name: StakingTwinRewards
+          file: ./abis/StakingTwinRewards.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleFeswTransfer
@@ -66,11 +73,17 @@ templates:
       entities:
         - Pair
         - Token
+        - Pool
+        - MiningPool
       abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
         - name: Pair
           file: ./abis/pair.json
         - name: FeSwapFactory
           file: ./abis/FeSwapFactory.json
+        - name: StakingTwinRewards
+          file: ./abis/StakingTwinRewards.json
       eventHandlers:
         - event: Mint(indexed address,uint256,uint256)
           handler: handleMint
@@ -94,7 +107,10 @@ templates:
       file: ./src/mappings/mining.ts
       entities:
         - MiningPool
+        - MiningPosition
       abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
         - name: Pair
           file: ./abis/pair.json
         - name: StakingTwinRewards

@@ -13,8 +13,10 @@ import {
   MiningPool
 } from '../types/schema'
 
+import { StakingTwinRewards as StakingTwinRewardsTemplate  } from '../types/templates'
 import { Pair as PairContract, Mint, Burn, Swap, Transfer, Sync, InitializeCall } from '../types/templates/Pair/Pair'
 import { updatePairDayData, updateTokenDayData, updateFeSwapDayData } from './dayUpdates'
+import { newStakePool } from './mining'
 import { getEthPriceInUSD, findEthPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD, USDC_WETH_PAIR, WETH_USDC_PAIR } from './pricing'
 import {
   convertTokenToDecimal,
@@ -22,6 +24,8 @@ import {
   ADDRESS_ZERO,
   ADDRESS_MAX,
   FACTORY_ADDRESS,
+  STAKE_POOL1_ADDRESS,
+  STAKE_POOL2_ADDRESS,
   ONE_BI,
   ZERO_BI,
   createUser,
@@ -199,7 +203,7 @@ export function handleTransfer(event: Transfer): void {
 
   // check if from is statking contract
   let fromStakeContract = MiningPool.load(from.toHexString())
-  if ((fromStakeContract !== null) && (from.toHexString() != ADDRESS_ZERO) && (from.toHexString() != pair.id)) {
+  if ((fromStakeContract === null) && (from.toHexString() != ADDRESS_ZERO) && (from.toHexString() != pair.id)) {
     let fromUserLiquidityPosition = createLiquidityPosition(event.address, from)
     fromUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(from), BI_18)
     fromUserLiquidityPosition.save()
@@ -208,7 +212,16 @@ export function handleTransfer(event: Transfer): void {
 
   // check if to is statking contract
   let toStakeContract = MiningPool.load(to.toHexString())
-  if ((toStakeContract !== null) && (to.toHexString() != ADDRESS_ZERO) && (to.toHexString() != pair.id)) {
+
+  // handle the staking before notifying
+  if (toStakeContract === null) {
+    if ((to.toHexString() == STAKE_POOL1_ADDRESS) || (to.toHexString() == STAKE_POOL2_ADDRESS)) {
+      // create the staking contract based on the template
+      toStakeContract = newStakePool(to)
+      StakingTwinRewardsTemplate.create(to)
+    }
+  }
+  if ((toStakeContract === null) && (to.toHexString() != ADDRESS_ZERO) && (to.toHexString() != pair.id)) {
     let toUserLiquidityPosition = createLiquidityPosition(event.address, to)
     toUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(to), BI_18)
     toUserLiquidityPosition.save()
@@ -571,7 +584,7 @@ export function handleSwap(event: Swap): void {
   swap.to = event.params.to
   swap.logIndex = event.logIndex
   // use the tracked amount if we have it
-  swap.amountUSD = (trackedAmountUSD === ZERO_BD) ? derivedAmountUSD : trackedAmountUSD
+  swap.amountUSD = (trackedAmountUSD == ZERO_BD) ? derivedAmountUSD : trackedAmountUSD
   swap.save()
 
   // update the transaction

@@ -9,7 +9,9 @@ import { FeSwapFactory as FactoryContract } from '../types/templates/Pair/FeSwap
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 export const ADDRESS_MAX  = '0xffffffffffffffffffffffffffffffffffffffff'
-export const FACTORY_ADDRESS = '0x91289e8150E20Ff7CA8478dAd6DCC55D5c85Ac2D'
+export const FACTORY_ADDRESS = '0x91289e8150e20ff7ca8478dad6dcc55d5c85ac2d'
+export const STAKE_POOL1_ADDRESS = '0xe05dbd3379fcfd8cf9288d690950ddc0141ceff4'
+export const STAKE_POOL2_ADDRESS = '0xde7fa1fbc848452f03883b3b8a6aef0e81995ad0'
 export const STAKING_FACTORY_ADDRESS = '0xe499ee63f5ad4b70f7931ab81bc8d8a8f8f2f66e'
 export const INIT_CODE_HASH = '0x1b68a89c18551451d63580e66fda7aee3ccf09c7317f32b6747ff18b1173ad09'
 
