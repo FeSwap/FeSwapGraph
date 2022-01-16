@@ -201,16 +201,8 @@ export function handleTransfer(event: Transfer): void {
     transaction.save()
   }
 
-  // check if from is statking contract
+  // check if from or to is statking contract
   let fromStakeContract = MiningPool.load(from.toHexString())
-  if ((fromStakeContract === null) && (from.toHexString() != ADDRESS_ZERO) && (from.toHexString() != pair.id)) {
-    let fromUserLiquidityPosition = createLiquidityPosition(event.address, from)
-    fromUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(from), BI_18)
-    fromUserLiquidityPosition.save()
-    createLiquiditySnapshot(fromUserLiquidityPosition, event)
-  }
-
-  // check if to is statking contract
   let toStakeContract = MiningPool.load(to.toHexString())
 
   // handle the staking before notifying
@@ -221,11 +213,21 @@ export function handleTransfer(event: Transfer): void {
       StakingTwinRewardsTemplate.create(to)
     }
   }
-  if ((toStakeContract === null) && (to.toHexString() != ADDRESS_ZERO) && (to.toHexString() != pair.id)) {
-    let toUserLiquidityPosition = createLiquidityPosition(event.address, to)
-    toUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(to), BI_18)
-    toUserLiquidityPosition.save()
-    createLiquiditySnapshot(toUserLiquidityPosition, event)
+
+  if ((fromStakeContract === null) && (toStakeContract === null)){
+    if ((from.toHexString() != ADDRESS_ZERO) && (from.toHexString() != pair.id)) {
+      let fromUserLiquidityPosition = createLiquidityPosition(event.address, from)
+      fromUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(from), BI_18)
+      fromUserLiquidityPosition.save()
+      createLiquiditySnapshot(fromUserLiquidityPosition, event)
+    }
+
+    if ((to.toHexString() != ADDRESS_ZERO) && (to.toHexString() != pair.id)) {
+      let toUserLiquidityPosition = createLiquidityPosition(event.address, to)
+      toUserLiquidityPosition.liquidityTokenBalance = convertTokenToDecimal(pairContract.balanceOf(to), BI_18)
+      toUserLiquidityPosition.save()
+      createLiquiditySnapshot(toUserLiquidityPosition, event)
+    }
   }
 
   transaction.save()
