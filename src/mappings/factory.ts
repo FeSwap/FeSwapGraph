@@ -81,7 +81,6 @@ export function handleNewPair(event: PairCreated): void {
     token0.tradeVolumeUSD = ZERO_BD
     token0.untrackedVolumeUSD = ZERO_BD
     token0.totalLiquidity = ZERO_BD
-    token0.whitelist = []
     token0.txCount = ZERO_BI
   }
 
@@ -104,20 +103,7 @@ export function handleNewPair(event: PairCreated): void {
     token1.tradeVolumeUSD = ZERO_BD
     token1.untrackedVolumeUSD = ZERO_BD
     token1.totalLiquidity = ZERO_BD
-    token1.whitelist = []
     token1.txCount = ZERO_BI
-  }
-
-  if (isOnWhitelist(token1.id)) {
-    let whitelist0 = token0.whitelist
-    whitelist0.push(event.params.pairAAB.toHexString())
-    token0.whitelist = whitelist0
-  }
-
-  if (isOnWhitelist(token0.id)) {
-    let whitelist1 = token1.whitelist
-    whitelist1.push(event.params.pairABB.toHexString())
-    token1.whitelist = whitelist1
   }
 
   let pairAAB = new Pair(event.params.pairAAB.toHexString()) as Pair

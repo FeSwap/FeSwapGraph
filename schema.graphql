@@ -49,9 +49,6 @@ type Token @entity {
   # transactions across all pairs
   txCount: BigInt!
 
-  # for tracking volume
-  whitelist: [String!]!
-
   # derived fields
   tokenDayData: [TokenDayData!]! @derivedFrom(field: "token")
   pairDayDataBase: [PairDayData!]! @derivedFrom(field: "token0")

@@ -63,12 +63,12 @@ export function getEthPriceInUSD(): BigDecimal {
 // token where amounts should contribute to tracked volume and liquidity
 let WHITELIST: string[] = [
   '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619', // WETH
-  '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC
-  '0xa3fa99a148fa48d14ed51d610c367c61876997f1', // miMATIC
   '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270', // WMATIC
   '0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6', // WBTC
-  '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
+  '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC
   '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // USDT
+  '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
+  '0xa3fa99a148fa48d14ed51d610c367c61876997f1', // miMATIC
   '0xd6df932a45c0f255f85145f286ea0b292b21c90b', // AAVE
   '0x831753dd7087cac61ab5644b308642cc1c33dc13', // QUICK
   '0x0be3afd0a28f0aa787d113c08d1d8a903cf6eee9', // FESW@M
@@ -92,19 +92,24 @@ export function findEthPerToken(token: Token): BigDecimal {
   if (token.id == WETH_ADDRESS) {
     return ONE_BD
   }
+
   // loop through whitelist and check if paired with any
-  let whitelist = token.whitelist
-  for (let i = 0; i < whitelist.length; i++) {
-      let pairAddress = whitelist[i]
-      let pairAAB = Pair.load(pairAddress)!
-      let pairABB = Pair.load(pairAAB.sibling)!
+  for (let i = 0; i < WHITELIST.length; ++i) {
+    let pairs = factoryContract.getPair(Address.fromString(token.id), Address.fromString(WHITELIST[i]))
+    let pairAddressAAB = pairs.value0
+    let pairAddressABB = pairs.value1
+    if (pairAddressAAB.toHexString() != ADDRESS_ZERO) {
+      let pairAAB = Pair.load(pairAddressAAB.toHexString())!
+      let pairABB = Pair.load(pairAddressABB.toHexString())!
       if(pairAAB.reserveETH.plus(pairABB.reserveETH).gt(MINIMUM_LIQUIDITY_THRESHOLD_ETH))
       {        
         let token1 = Token.load(pairAAB.token1)!
         return pairAAB.reserve1.plus(pairABB.reserve0).div(pairAAB.reserve0.plus(pairABB.reserve1))
                       .times(token1.derivedETH as BigDecimal) // return token1 per our token * Eth per token 1
       }
+    }
   }
+
   return ZERO_BD // nothing was found return 0
 }
 
